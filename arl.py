@@ -23,14 +23,10 @@ df = df_.copy()
 df.shape
 
 df.describe().T
-# as you can see there are negative values, because of the returned products.
-# we need to get rid of them.
+
 
 df.describe().T
-# as you can see there are negative values, because of the returned products.
-# we need to get rid of them.
 
-# getting rid of the returned products and NaNs and selecting quantitiy an price as bigger than 0
 def retail_data_prep(dataframe):
     dataframe.dropna(inplace=True)  # eksisk değerlerin silinmesi
     dataframe = dataframe[~dataframe["Invoice"].str.contains("C", na=False)]
@@ -41,22 +37,21 @@ def retail_data_prep(dataframe):
 df = retail_data_prep(df)
 
 df.describe().T
-# as you can see negative values are no longer exist
 
 df.isnull().sum()
-# no more missing values
+# 没有更多的缺失值
 
-# limitation for outliers
+# 异常值的限制
 def outlier_threshold(dataframe, varibale):
     quartile1 = dataframe[varibale].quantile(0.01)
     quartile3 = dataframe[varibale].quantile(0.99)
-    # the reason why 0.01 and 0.99 are used is arrange outliers without making harsh changes in dataset
+    # 使用 0.01 和 0.99 的原因是在不对数据集进行严格更改的情况下检测异常值
     interquartile_range = quartile3 - quartile1
     up_limit = quartile3 + 1.5 * interquartile_range
     low_limit = quartile1 - 1.5 * interquartile_range
     return low_limit, up_limit
 
-# suppress outliers
+# 抑制异常值
 def replace_with_thresholds(dataframe, variable):
     low_limit, up_limit = outlier_threshold(dataframe, variable)
     dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
@@ -66,7 +61,7 @@ replace_with_thresholds(df, "Quantity")
 replace_with_thresholds(df, "Price")
 
 ###################
-# Prepare ARL Data Structure
+# 准备 ARL 数据结构
 ###################
 
 # Invoice-Product Matrix:
@@ -79,7 +74,7 @@ replace_with_thresholds(df, "Price")
 # 537065                              1                                 0                       0
 # 537463                              0                                 0                       1
 
-# reduction of the dataset to a single country
+# 将数据集减少到一个国家
 df_fr = df[df["Country"] == "France"]
 df_fr.head()
 
@@ -100,12 +95,12 @@ def create_invoice_product_df(dataframe, id=False):
             applymap(lambda x: 1 if x > 0 else 0)
 
 fr_inv_pro_df = create_invoice_product_df(df_fr, id=True)
-# Having product names as variable names causes it to take up a lot of memory and the code to run slowly,
-# so it is healthier to name the variables with their stockCodes, not the product names.
+# 将产品名称作为变量名称会导致它占用大量内存并且代码运行缓慢，
+# 所以用发票code而不是产品名称来命名变量更有优势。
 
 fr_inv_pro_df.iloc[0:8, 0:8]
 
-# reach description via stock code
+# 通过发票code获取描述
 def check_id(dataframe, stock_code):
     product_name = dataframe[dataframe["StockCode"] == stock_code][["Description"]].values[0].tolist()
     print(product_name)
@@ -113,17 +108,17 @@ def check_id(dataframe, stock_code):
 check_id(df_fr, 10002)
 
 #################
-# Association Rules
+# 关联规则
 #################
 
-# items that occur frequently together and reach a predefined level of support and confidence
+# 经常一起出现并达到预定支持度和置信度水平的产品
 frequent_itemsets = apriori(fr_inv_pro_df,
                             min_support=0.01,
                             use_colnames=True)
 
 frequent_itemsets.sort_values("support", ascending=False)
 
-# association rules
+# 关联规则
 rules = association_rules(frequent_itemsets,
                           metric="support",
                           min_threshold=0.01)
@@ -140,13 +135,13 @@ leverage : similar to lift but it gives priority to higher support.
 conviction : expected frequency of antecedents A without consequent C
 """
 
-#filtering associatiion fules with support, confidence and lift values
+# 使用支持度、置信度和提升值过滤关联规则
 rules[(rules["support"] > 0.05)
       & (rules["confidence"] > 0.1)
       & (rules["lift"] > 5)].sort_values("confidence", ascending=False)
 
 ##################
-# Product Recommendation
+# 产品推荐
 ##################
 
 def arl_recommender(rules_df, product_id, rec_count=1):
@@ -161,7 +156,7 @@ def arl_recommender(rules_df, product_id, rec_count=1):
 
 arl_recommender(rules, 22492, 2)
 
-# checking the product names from the id of the products going to recommend
+# 从要推荐的产品的 ID 中检查产品名称
 
 def check_id(dataframe, stock_code):
     product_names = []
